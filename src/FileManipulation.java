@@ -105,6 +105,7 @@ public class FileManipulation {
     public static void del_order_by_col(String col, String value) {
         HashSet<Integer> ids;
         ids = get_ids_by_col(col, value);
+        if (ids == null) return;
         del_order_by_id(ids);
     }
 
@@ -117,7 +118,12 @@ public class FileManipulation {
         StringBuilder sb = new StringBuilder();
         sb.append(Order.get_col_names()).append("\n");
         String order = "";
+
+        if (ids == null) {
+            return sb.toString();
+        }
         for (int id : ids) {
+            if (id_order_map.get(id) == null) continue;
             order = id_order_map.get(id).toString();
             sb.append(order).append("\n");
         }
@@ -138,6 +144,9 @@ public class FileManipulation {
         }
         sb.append(col_names).append("\n");
 
+        if (ids == null) {
+            return sb.toString();
+        }
         for (int id : ids) {
             Order order = id_order_map.get(id);
             StringJoiner values = new StringJoiner(",");
@@ -163,15 +172,20 @@ public class FileManipulation {
     /* Update the order table with the given ID, UPDATED_COL and  UPDATED_VALUE. */
     public static void update_order_by_id(int id, String updated_col, String updated_value) {
         Order order = id_order_map.get(id);
-        order.set_col_values(updated_col,updated_value);
-        id_order_map.put(id,order);
-        update_map_with_new_value(id,updated_col,updated_value);
+        if (order != null) {
+            update_map_with_new_value(id,updated_col,updated_value);
+            order.set_col_values(updated_col, updated_value);
+            id_order_map.put(id, order);
+        }
     }
 
     /* Update the UPDATED_COL of orders which have VALUE in COL with
        given UPDATED_VALUE. */
     public static void update_order_by_col(String updated_col, String updated_val, String col, String value) {
         HashSet<Integer> ids = get_ids_by_col(col, value);
+        if (ids == null) {
+            return;
+        }
         for (int id : ids) {
             update_order_by_id(id,updated_col,updated_val);
         }
@@ -189,6 +203,30 @@ public class FileManipulation {
     /* Return the biggest index of orders. */
     public static int get_order_index() {
         return order_index;
+    }
+
+    public static int get_contract_count() {
+        return c_id_map.size();
+    }
+
+    public static int get_model_count() {
+        return m_id_map.size();
+    }
+
+    public static int get_salesman_count() {
+        return s_id_map.size();
+    }
+
+    public static int get_e_date_count() {
+        return e_id_map.size();
+    }
+
+    public static int get_l_date_count() {
+        return l_id_map.size();
+    }
+
+    public static int get_quantity_count() {
+        return q_id_map.size();
     }
 
     /*
@@ -257,47 +295,53 @@ public class FileManipulation {
         HashSet<Integer> set;
 
         if (!q_id_map.containsKey(quant)) {
-            q_id_map.put(quant,new HashSet<>());
+            set = new HashSet<>();
         } else {
             set = q_id_map.get(quant);
-            set.add(order_index);
-            q_id_map.put(quant,set);
         }
+        set.add(order_index);
+        q_id_map.put(quant,set);
+
         if (!l_id_map.containsKey(l_date)) {
-            l_id_map.put(l_date,new HashSet<>());
+            set = new HashSet<>();
         } else {
             set = l_id_map.get(l_date);
-            set.add(order_index);
-            l_id_map.put(l_date,set);
         }
+        set.add(order_index);
+        l_id_map.put(l_date,set);
+
         if (!e_id_map.containsKey(e_date)) {
-            e_id_map.put(e_date,new HashSet<>());
+            set = new HashSet<>();
         } else {
             set = e_id_map.get(e_date);
-            set.add(order_index);
-            e_id_map.put(e_date,set);
         }
+        set.add(order_index);
+        e_id_map.put(e_date,set);
+
         if (!s_id_map.containsKey(s_num)) {
-            s_id_map.put(s_num,new HashSet<>());
+            set = new HashSet<>();
         } else {
             set = s_id_map.get(s_num);
-            set.add(order_index);
-            s_id_map.put(s_num,set);
         }
+        set.add(order_index);
+        s_id_map.put(s_num,set);
+
         if (!m_id_map.containsKey(m_id)) {
-            m_id_map.put(m_id,new HashSet<>());
+            set = new HashSet<>();
         } else {
             set = m_id_map.get(m_id);
-            set.add(order_index);
-            m_id_map.put(m_id,set);
         }
+        set.add(order_index);
+        m_id_map.put(m_id,set);
+
         if (!c_id_map.containsKey(c_id)) {
-            c_id_map.put(c_id,new HashSet<>());
+            set = new HashSet<>();
         } else {
             set = c_id_map.get(c_id);
-            set.add(order_index);
-            c_id_map.put(c_id,set);
         }
+        set.add(order_index);
+        c_id_map.put(c_id,set);
+
     }
 
     /* Get the corresponding order ids with the given COL and VALUE. */
@@ -336,6 +380,9 @@ public class FileManipulation {
     /* Remove the ID in all the maps. */
     private static void remove_id_from_maps(int id) {
         Order order = id_order_map.get(id);
+        if (order == null) {
+            return;
+        }
         int quantity = order.quantity;
         String l_date = order.lodgement_date;
         String e_date = order.estimated_delivery_date;
@@ -373,6 +420,9 @@ public class FileManipulation {
     * and adding ID to the set corresponding to NEW_VALUE. */
     private static void update_map_with_new_value(int id, String col, String new_value) {
         Order order = id_order_map.get(id);
+        if (order == null) {
+            return;
+        }
         HashSet<Integer> ids;
         HashSet<Integer> new_ids;
         switch (col) {
@@ -382,7 +432,7 @@ public class FileManipulation {
                 ids.remove(id);
                 q_id_map.put(q,ids);
                 int new_q = Integer.parseInt(new_value);
-                new_ids = q_id_map.get(new_q);
+                new_ids = q_id_map.get(new_q) == null ? new HashSet<>() : q_id_map.get(new_q);
                 new_ids.add(id);
                 q_id_map.put(new_q,new_ids);
                 break;
@@ -391,7 +441,7 @@ public class FileManipulation {
                 ids = l_id_map.get(l);
                 ids.remove(id);
                 l_id_map.put(l,ids);
-                new_ids = l_id_map.get(new_value);
+                new_ids = l_id_map.get(new_value) == null ? new HashSet<>() : l_id_map.get(new_value);
                 new_ids.add(id);
                 l_id_map.put(new_value,new_ids);
                 break;
@@ -400,7 +450,7 @@ public class FileManipulation {
                 ids = e_id_map.get(e);
                 ids.remove(id);
                 e_id_map.put(e,ids);
-                new_ids = e_id_map.get(new_value);
+                new_ids = e_id_map.get(new_value) == null ? new HashSet<>() : e_id_map.get(new_value);
                 new_ids.add(id);
                 e_id_map.put(new_value,new_ids);
                 break;
@@ -410,7 +460,7 @@ public class FileManipulation {
                 ids.remove(id);
                 s_id_map.put(s,ids);
                 int new_s = Integer.parseInt(new_value);
-                new_ids = s_id_map.get(new_s);
+                new_ids = s_id_map.get(new_s) == null ? new HashSet<>() : s_id_map.get(new_s);
                 new_ids.add(id);
                 s_id_map.put(new_s,new_ids);
                 break;
@@ -420,7 +470,7 @@ public class FileManipulation {
                 ids.remove(id);
                 m_id_map.put(m,ids);
                 int new_m = Integer.parseInt(new_value);
-                new_ids = m_id_map.get(new_m);
+                new_ids = m_id_map.get(new_m) == null ? new HashSet<>() : m_id_map.get(new_m);
                 new_ids.add(id);
                 m_id_map.put(new_m,new_ids);
                 break;
@@ -430,7 +480,7 @@ public class FileManipulation {
                 ids.remove(id);
                 c_id_map.put(c,ids);
                 int new_c = Integer.parseInt(new_value);
-                new_ids = c_id_map.get(new_c);
+                new_ids = c_id_map.get(new_c) == null ? new HashSet<>() : c_id_map.get(new_c);
                 new_ids.add(id);
                 c_id_map.put(new_c,new_ids);
                 break;
