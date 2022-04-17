@@ -12,13 +12,13 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.Properties;
 
-public class TestSQL {
+public class Test_Index {
     private static final int batch_size = 5000;
     private static Connection con = null;
     private static PreparedStatement insert = null;
     private static PreparedStatement delete = null;
-    private static PreparedStatement update = null;
-    private static PreparedStatement select = null;
+    private static PreparedStatement select_i = null;
+    private static PreparedStatement select_c = null;
 //    private static PreparedStatement client = null;
 //    private static PreparedStatement supplycenter = null;
     private static boolean verbose = false;
@@ -51,8 +51,9 @@ public class TestSQL {
             insert = con.prepareStatement("insert into \"order\"(order_id,quantity,lodgement_date,estimated_delivery,salesman_number,model_id,contract_id)"
                     + " values(?,?,?,?,?,?,?)");
             delete = con.prepareStatement("delete from \"order\" where order_id = ?");
-            update = con.prepareStatement("update \"order\" set quantity = ? where model_id = ?");
-            select = con.prepareStatement("select quantity,lodgement_date from \"order\" where contract_id = ?");
+            select_i = con.prepareStatement("select quantity,lodgement_date from \"order\" where order_id = ?");
+            select_c = con.prepareStatement("select quantity,lodgement_date from \"order\" where contract_id = ?");
+
         } catch (SQLException e) {
             System.err.println("Insert statement failed");
             System.err.println(e.getMessage());
@@ -71,11 +72,11 @@ public class TestSQL {
                 if (delete != null) {
                     delete.close();
                 }
-                if (update != null) {
-                    update.close();
+                if (select_i != null) {
+                    select_i.close();
                 }
-                if (select != null) {
-                    select.close();
+                if (select_c != null) {
+                    select_c.close();
                 }
                 con.close();
                 con = null;
@@ -115,11 +116,9 @@ public class TestSQL {
         }
     }
 
-    private static void update_order(int quantity, int model_id) {
+    private static void select_id(int order_id) {
         try {
-            update.setInt(1,quantity);
-            update.setInt(2,model_id);
-            update.addBatch();
+            select_i.setInt(1,order_id);
         }catch (SQLException throwables) {
             //
         }
@@ -127,7 +126,7 @@ public class TestSQL {
 
     private static void select_order(int contract_id) {
         try {
-            select.setInt(1,contract_id);
+            select_c.setInt(1,contract_id);
         }catch (SQLException throwables) {
             //
         }
@@ -258,102 +257,7 @@ public class TestSQL {
 
 
         /*
-            delete 20,000 orders.
-         */
-        try {
-            long start, end;
-            HashSet<Integer> ids = new HashSet<>();
-            for (int i=0; i<20000; i++) {
-                ids.add(i + 29867);
-            }
-            count = 0;
-
-
-            openDB(prop.getProperty("host"), prop.getProperty("database"), prop.getProperty("user"), prop.getProperty("password"));
-
-            start = System.currentTimeMillis();
-            for (int id : ids) {
-                delete_order(id);
-                count++;
-            }
-            delete.executeBatch();
-            end = System.currentTimeMillis();
-
-            con.commit();
-            delete.close();
-            closeDB();
-
-
-            System.out.printf("%d orders successfully deleted. It costs %d ms.\n",count,(end-start));
-
-        }  catch (SQLException se) {
-            System.err.println("SQL error: " + se.getMessage());
-            try {
-                con.rollback();
-                delete.close();
-            } catch (Exception e2) {
-            }
-            closeDB();
-            System.exit(1);
-        }
-        closeDB();
-
-        /*
-            insert again
-         */
-        try (BufferedReader infile = new BufferedReader(new FileReader(insert_orders))) {
-            long start, end;
-            String line;
-            String[] data;
-            count = 0;
-
-            start = System.currentTimeMillis();
-            openDB(prop.getProperty("host"), prop.getProperty("database"), prop.getProperty("user"), prop.getProperty("password"));
-
-            while ((line = infile.readLine()) != null) {
-                data = line.split(",");
-                insert_order(Integer.parseInt(data[1]),data[2],data[3],Integer.parseInt(data[4]),
-                        Integer.parseInt(data[5]),Integer.parseInt(data[6]));
-                count++;
-                if (count % batch_size == 0) {
-                    insert.executeBatch();
-                }
-            }
-            if (count % batch_size != 0) {
-                insert.executeBatch();
-            }
-
-            con.commit();
-            insert.close();
-            closeDB();
-
-            end = System.currentTimeMillis();
-            System.out.printf("%d orders successfully inserted. It costs %d ms.\n",count,(end-start));
-
-        }  catch (SQLException se) {
-            System.err.println("SQL error: " + se.getMessage());
-            try {
-                con.rollback();
-                insert.close();
-            } catch (Exception e2) {
-            }
-            closeDB();
-            System.exit(1);
-        } catch (IOException e) {
-            System.err.println("Fatal error: " + e.getMessage());
-            try {
-                con.rollback();
-                insert.close();
-            } catch (Exception e2) {
-            }
-            closeDB();
-            System.exit(1);
-        }
-        closeDB();
-
-
-        /*
-            select test.
+            select_c test.
          */
         try {
             long start, end;
@@ -365,21 +269,21 @@ public class TestSQL {
             for (int i = 0; i < 2000; i++) {
                 select_order(i+1);
                 count++;
-                select.executeQuery();
+                select_c.executeQuery();
             }
             end = System.currentTimeMillis();
 
             con.commit();
-            select.close();
+            select_c.close();
             closeDB();
 
-            System.out.printf("%d orders successfully selected. It costs %d ms.\n",count,(end-start));
+            System.out.printf("%d selects by contract_id. It costs %d ms.\n",count,(end-start));
 
         }  catch (SQLException se) {
             System.err.println("SQL error: " + se.getMessage());
             try {
                 con.rollback();
-                select.close();
+                select_c.close();
             } catch (Exception e2) {
             }
             closeDB();
@@ -388,7 +292,7 @@ public class TestSQL {
         closeDB();
 
     /*
-        update test.
+        select_i test.
      */
     try {
         long start, end;
@@ -398,25 +302,25 @@ public class TestSQL {
         openDB(prop.getProperty("host"), prop.getProperty("database"), prop.getProperty("user"), prop.getProperty("password"));
 
         start = System.currentTimeMillis();
-        for (int i = 0; i < 500; i++) {
-            update_order(i+1,i+1);
+        for (int i = 0; i < 2000; i++) {
+            select_id(i+1);
             count++;
+            select_i.executeQuery();
         }
-        update.executeBatch();
         end = System.currentTimeMillis();
 
         con.commit();
-        update.close();
+        select_i.close();
         closeDB();
 
 
-        System.out.printf("%d orders successfully updated. It costs %d ms.\n",count,(end-start));
+        System.out.printf("%d orders selects by order_id. It costs %d ms.\n",count,(end-start));
 
     }  catch (SQLException se) {
         System.err.println("SQL error: " + se.getMessage());
         try {
             con.rollback();
-            update.close();
+            select_i.close();
         } catch (Exception e2) {
         }
         closeDB();

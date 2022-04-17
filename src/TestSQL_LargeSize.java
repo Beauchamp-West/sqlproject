@@ -12,7 +12,7 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.Properties;
 
-public class TestSQL {
+public class TestSQL_LargeSize {
     private static final int batch_size = 5000;
     private static Connection con = null;
     private static PreparedStatement insert = null;
@@ -134,223 +134,72 @@ public class TestSQL {
     }
 
     public static void main(String [] args) {
-        String order_table = Utils.join("tables","order.csv");
+        String order_table = "random_order.csv";
         String insert_orders = Utils.join("tables","insert_data.csv"); // 20,000 orders.
 
         Properties defprop = new Properties();
         defprop.put("host", "localhost");
         defprop.put("user", "leolu");
         defprop.put("password", "");
-        defprop.put("database", "project");
+        defprop.put("database", "project_t");
         Properties prop = new Properties(defprop);
 
         /*
             init the order table.
          */
         int count = 0;
-        try (BufferedReader infile = new BufferedReader(new FileReader(order_table))) {
-            long start, end;
-            String line;
-            String[] data;
-
-            start = System.currentTimeMillis();
-            openDB(prop.getProperty("host"), prop.getProperty("database"), prop.getProperty("user"), prop.getProperty("password"));
-
-            infile.readLine();
-            while ((line = infile.readLine()) != null) {
-                data = line.split(",");
-                insert_order(Integer.parseInt(data[1]),data[2],data[3],Integer.parseInt(data[4]),
-                        Integer.parseInt(data[5]),Integer.parseInt(data[6]));
-
-                count++;
-                if (count % batch_size == 0) {
-                    insert.executeBatch();
-                }
-            }
-            if (count % batch_size != 0) {
-                insert.executeBatch();
-            }
-
-            con.commit();
-            insert.close();
-            closeDB();
-
-            end = System.currentTimeMillis();
-            System.out.println(count + " records successfully loaded");
-            System.out.println("Loading speed : "
-                    + (count * 1000L) / (end - start)
-                    + " records/s");
-
-        }  catch (SQLException se) {
-            System.err.println("SQL error: " + se.getMessage());
-            try {
-                con.rollback();
-                insert.close();
-            } catch (Exception e2) {
-            }
-            closeDB();
-            System.exit(1);
-        } catch (IOException e) {
-            System.err.println("Fatal error: " + e.getMessage());
-            try {
-                con.rollback();
-                insert.close();
-            } catch (Exception e2) {
-            }
-            closeDB();
-            System.exit(1);
-        }
-
-
-        /*
-            insert 20,000 orders.
-         */
-        try (BufferedReader infile = new BufferedReader(new FileReader(insert_orders))) {
-            long start, end;
-            String line;
-            String[] data;
-            count = 0;
-
-
-            openDB(prop.getProperty("host"), prop.getProperty("database"), prop.getProperty("user"), prop.getProperty("password"));
-
-            start = System.currentTimeMillis();
-            while ((line = infile.readLine()) != null) {
-                data = line.split(",");
-                insert_order(Integer.parseInt(data[1]),data[2],data[3],Integer.parseInt(data[4]),
-                        Integer.parseInt(data[5]),Integer.parseInt(data[6]));
-                count++;
-                if (count % batch_size == 0) {
-                    insert.executeBatch();
-                }
-            }
-            if (count % batch_size != 0) {
-                insert.executeBatch();
-            }
-            end = System.currentTimeMillis();
-
-            con.commit();
-            insert.close();
-            closeDB();
-
-            System.out.printf("%d orders successfully inserted. It costs %d ms.\n",count,(end-start));
-
-        }  catch (SQLException se) {
-            System.err.println("SQL error: " + se.getMessage());
-            try {
-                con.rollback();
-                insert.close();
-            } catch (Exception e2) {
-            }
-            closeDB();
-            System.exit(1);
-        } catch (IOException e) {
-            System.err.println("Fatal error: " + e.getMessage());
-            try {
-                con.rollback();
-                insert.close();
-            } catch (Exception e2) {
-            }
-            closeDB();
-            System.exit(1);
-        }
-        closeDB();
-
-
-        /*
-            delete 20,000 orders.
-         */
-        try {
-            long start, end;
-            HashSet<Integer> ids = new HashSet<>();
-            for (int i=0; i<20000; i++) {
-                ids.add(i + 29867);
-            }
-            count = 0;
-
-
-            openDB(prop.getProperty("host"), prop.getProperty("database"), prop.getProperty("user"), prop.getProperty("password"));
-
-            start = System.currentTimeMillis();
-            for (int id : ids) {
-                delete_order(id);
-                count++;
-            }
-            delete.executeBatch();
-            end = System.currentTimeMillis();
-
-            con.commit();
-            delete.close();
-            closeDB();
-
-
-            System.out.printf("%d orders successfully deleted. It costs %d ms.\n",count,(end-start));
-
-        }  catch (SQLException se) {
-            System.err.println("SQL error: " + se.getMessage());
-            try {
-                con.rollback();
-                delete.close();
-            } catch (Exception e2) {
-            }
-            closeDB();
-            System.exit(1);
-        }
-        closeDB();
-
-        /*
-            insert again
-         */
-        try (BufferedReader infile = new BufferedReader(new FileReader(insert_orders))) {
-            long start, end;
-            String line;
-            String[] data;
-            count = 0;
-
-            start = System.currentTimeMillis();
-            openDB(prop.getProperty("host"), prop.getProperty("database"), prop.getProperty("user"), prop.getProperty("password"));
-
-            while ((line = infile.readLine()) != null) {
-                data = line.split(",");
-                insert_order(Integer.parseInt(data[1]),data[2],data[3],Integer.parseInt(data[4]),
-                        Integer.parseInt(data[5]),Integer.parseInt(data[6]));
-                count++;
-                if (count % batch_size == 0) {
-                    insert.executeBatch();
-                }
-            }
-            if (count % batch_size != 0) {
-                insert.executeBatch();
-            }
-
-            con.commit();
-            insert.close();
-            closeDB();
-
-            end = System.currentTimeMillis();
-            System.out.printf("%d orders successfully inserted. It costs %d ms.\n",count,(end-start));
-
-        }  catch (SQLException se) {
-            System.err.println("SQL error: " + se.getMessage());
-            try {
-                con.rollback();
-                insert.close();
-            } catch (Exception e2) {
-            }
-            closeDB();
-            System.exit(1);
-        } catch (IOException e) {
-            System.err.println("Fatal error: " + e.getMessage());
-            try {
-                con.rollback();
-                insert.close();
-            } catch (Exception e2) {
-            }
-            closeDB();
-            System.exit(1);
-        }
-        closeDB();
-
+//        try (BufferedReader infile = new BufferedReader(new FileReader(order_table))) {
+//            long start, end;
+//            String line;
+//            String[] data;
+//
+//            start = System.currentTimeMillis();
+//            openDB(prop.getProperty("host"), prop.getProperty("database"), prop.getProperty("user"), prop.getProperty("password"));
+//
+//            infile.readLine();
+//            while ((line = infile.readLine()) != null) {
+//                data = line.split(",");
+//                insert_order(Integer.parseInt(data[0]),data[1],data[2],Integer.parseInt(data[3]),
+//                        Integer.parseInt(data[4]),Integer.parseInt(data[5]));
+//
+//                count++;
+//                if (count % batch_size == 0) {
+//                    insert.executeBatch();
+//                }
+//            }
+//            if (count % batch_size != 0) {
+//                insert.executeBatch();
+//            }
+//
+//            con.commit();
+//            insert.close();
+//            closeDB();
+//
+//            end = System.currentTimeMillis();
+//            System.out.println(count + " records successfully loaded");
+//            System.out.println("Loading speed : "
+//                    + (count * 1000L) / (end - start)
+//                    + " records/s");
+//
+//        }  catch (SQLException se) {
+//            System.err.println("SQL error: " + se.getMessage());
+//            try {
+//                con.rollback();
+//                insert.close();
+//            } catch (Exception e2) {
+//            }
+//            closeDB();
+//            System.exit(1);
+//        } catch (IOException e) {
+//            System.err.println("Fatal error: " + e.getMessage());
+//            try {
+//                con.rollback();
+//                insert.close();
+//            } catch (Exception e2) {
+//            }
+//            closeDB();
+//            System.exit(1);
+//        }
 
         /*
             select test.
@@ -362,7 +211,7 @@ public class TestSQL {
             count = 0;
 
             start = System.currentTimeMillis();
-            for (int i = 0; i < 2000; i++) {
+            for (int i = 0; i < 20; i++) {
                 select_order(i+1);
                 count++;
                 select.executeQuery();
@@ -398,7 +247,7 @@ public class TestSQL {
         openDB(prop.getProperty("host"), prop.getProperty("database"), prop.getProperty("user"), prop.getProperty("password"));
 
         start = System.currentTimeMillis();
-        for (int i = 0; i < 500; i++) {
+        for (int i = 0; i < 20; i++) {
             update_order(i+1,i+1);
             count++;
         }
